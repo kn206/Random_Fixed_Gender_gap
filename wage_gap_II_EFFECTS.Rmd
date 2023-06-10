@@ -1,0 +1,180 @@
+---
+title: "Gender_Gap Analysis using Hypothesis Testing"
+author: 
+output:
+  html_document:
+    
+date: "2023-05-28"
+
+---
+
+Loading the Data 
+```{r}
+library(readr)
+wage_gap<-DP_LIVE_27052023133647764 <- read_csv("C:/Users/DELL LATITUDE E7270/Documents/AE_hypothesi/DP_LIVE_27052023133647764.csv")
+View(wage_gap)
+```
+
+
+#Data Exploration 
+```{r}
+# View the first few rows of the data
+head(wage_gap)
+
+# View the summary statistics of the data
+summary(wage_gap)
+
+# Check the column names
+colnames(wage_gap)
+
+# Check the data types of each column
+str(data)
+
+```
+
+
+#Data Transformation 
+```{r}
+# Droping the "Flag Codes" variable
+wage_gap <- subset(wage_gap, select = -`Flag Codes`)
+View(wage_gap)
+```
+The "Flag Codes" column is being dropped from the data set because it doesn't contain any values and is not considered important for our analysis. Since the column is empty, it does not provide any meaningful information or contribute to the variables we are examining. Therefore, removing it simplifies the data set and focuses our analysis on the relevant variables.
+
+#Checking Missing Values
+```{r}
+colSums(is.na(wage_gap))
+```
+Our data set has no missing values now
+
+#Data Visualization
+1.A bar chart to compare wages across different subjects.
+```{r}
+library(ggplot2)
+ggplot(wage_gap, aes(x = SUBJECT, y = Value, fill = SUBJECT)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Subject", y = "Wage", title = "Wage Comparison across Subjects") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+This bar chart compares the wages across different subjects(employee and self employed). Each bar represents a subject, and the height of the bar corresponds to the wage value. By examining the bar heights, we can observe variations in wages across different subjects.
+
+2. Line plot
+A line graph to show the wage trend over time for a specific location.
+```{r}
+
+library(ggplot2)
+ggplot(wage_gap, aes(x = TIME, y = Value, color = LOCATION)) +
+  geom_line() +
+  labs(x = "Time", y = "Wage", color = "Location", title = "Wage Trend over Time by Location")
+
+```
+
+This line plot displays the wage trend over time for different locations. Each line represents a specific location, and the x-axis represents time while the y-axis represents wage values. By examining the lines, we can identify the wage trends across different locations.
+
+3. Box plot 
+A boxplot to compare the wage distributions across different indicators.
+```{r}
+# wage_data is the data frame and 'Value' is the wage variable
+ggplot(wage_gap, aes(x = INDICATOR, y = Value)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(x = "Indicator", y = "Wage", title = "Wage Distribution across Indicators") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+This boxplot compares the wage distributions across different indicators. Each boxplot represents an indicator, and the y-axis represents wage values. By comparing the boxplots, we can identify any variations in wage distributions across different indicators.
+
+These visualizations aim to provide insights into the wage data based on the available variables in your dataset.
+
+4. Histogram
+```{r}
+library(ggplot2)
+ggplot(wage_gap, aes(x = Value)) +
+  geom_histogram(fill = "lightblue", color = "black", bins = 20) +
+  labs(x = "Wage", y = "Frequency", title = "Wage Distribution") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+This histogram plot illustrates the distribution of wages in your dataset. The x-axis represents the wage values, divided into several bins. The y-axis represents the frequency or count of wages falling within each bin. By examining the histogram, you can observe the shape and central tendency of the wage distribution, which can provide insights into the wage levels in your data.
+
+
+# Performing the Hypothesis
+#Model Hypothesis1 :
+
+Hypothesis: There is a significant relationship between the individual-specific effect SUBJECT and the time effect (TIME) on the dependent variable (VALUE) in the wage_gap data set.
+
+Therefore, the findings suggest that being self-employed  SELFEMPLOYED and the passage of time TIME have a statistically significant influence on the value of the variable of interest (VALUE) in the wage_gap data set.
+
+#Fixed effects regression model
+```{r}
+# estimate a combined time and entity fixed effects regression model
+
+# via lm()
+
+# Fit a linear model for VALUE with SUBJECT and TIME
+model <- lm(Value ~ SUBJECT+TIME, data = wage_gap)
+
+# Print the model summary
+summary(model)
+
+```
+
+
+```{r}
+# Fit a fixed effects linear model for VALUE with SUBJECT, TIME, and individual-specific fixed effects
+fixed_model <- plm(Value ~ SUBJECT + TIME + factor(LOCATION), data = wage_gap, model = "within")
+
+# Print the fixed effects model summary
+summary(fixed_model)
+
+```
+
+
+Based on the results of the fixed effects model, the p-values for both the SUBJECT (SELFEMPLOYED) and TIME variables are extremely small, indicating strong evidence against the null hypothesis that the coefficients for these variables are zero.
+
+Specifically, the p-value for SUBJECT (SELFEMPLOYED) is less than 2.2e-16, and the p-value for TIME is also less than 2.2e-16. These very small p-values suggest that both SUBJECT (SELFEMPLOYED) and TIME have statistically significant effects on the dependent variable, VALUE.
+
+Therefore, we can conclude that there is a significant relationship between SUBJECT (SELFEMPLOYED), TIME, and VALUE in the fixed effects model.
+
+#Model Hypothesis 2
+```{r}
+# Assuming your data is stored in a data frame called 'wage_gap' with the following variables: 'Value', 'SUBJECT', 'TIME', 'LOCATION'
+
+# Fit a random effects model for VALUE with SUBJECT and TIME
+random_model <- plm(Value ~ SUBJECT + TIME, data = wage_gap, model = "random")
+
+# Print the random effects model summary
+summary(random_model)
+
+```
+
+The random effects model results indicate a significant relationship between the variables SUBJECT (specifically SUBJECT: SELFEMPLOYED) and TIME with the dependent variable VALUE in the wage_gap dataset. Both SUBJECT (SELFEMPLOYED) and TIME have coefficients with p-values less than 0.05, indicating their significant impact on VALUE. The intercept term also shows a significant relationship.
+
+The R-squared value of 0.47294 suggests that approximately 47.29% of the variation in VALUE can be explained by the independent variables and random effects. The adjusted R-squared value of 0.47214 provides a slightly adjusted measure of model fit.
+
+In conclusion, the random effects model provides evidence of a significant relationship between SUBJECT: SELFEMPLOYED, TIME, and VALUE in the wage_gap dataset.
+
+
+```{r}
+# Having already estimated both the fixed effects and random effects models
+
+# Perform the Hausman test
+hausman_test <- phtest(fixed_model, random_model)
+
+# Print the Hausman test results
+print(hausman_test)
+
+```
+
+
+The Hausman test reveals a statistically significant test statistic of 19.86 with 2 degrees of freedom and a p-value of 4.869e-05. This indicates strong evidence against the null hypothesis that the random effects model is consistent and efficient.
+
+Therefore, we can conclude that the fixed effects model is preferred over the random effects model in this case. The individual-specific effects in the random effects model are found to be correlated with the independent variables, suggesting that the fixed effects model is more appropriate for the analysis of the wage_gap dataset.
+
+It is important to note that using the fixed effects model allows for controlling individual-specific effects that are constant over time, leading to more reliable and accurate estimation of the relationships between the independent variables and the dependent variable.
+
+In summary, based on the Hausman test results, we recommend using the fixed effects model to account for individual-specific effects in the analysis of the wage_gap dataset.
+
